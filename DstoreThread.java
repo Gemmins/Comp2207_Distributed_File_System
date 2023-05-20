@@ -1,21 +1,29 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class DstoreThread implements Runnable {
     PrintWriter out;
     Socket socket;
-    public DstoreThread(Socket clientSocket){
+    ArrayList<File> fileList;
+    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList){
         this.socket = clientSocket;
+        this.commQ = commQ;
+        this.fileList = fileList;
     }
+    BufferedReader input;
+    CommQ commQ;
+    BufferedInputStream binput;
 
     public void run() {
 
         OutputStream outputStream;
-        BufferedReader input;
+
 
 
         try {
             input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            binput = new BufferedInputStream(socket.getInputStream());
             outputStream = socket.getOutputStream();
             out = new PrintWriter(outputStream, true);
             String line;
@@ -41,7 +49,14 @@ public class DstoreThread implements Runnable {
     }
 
     public void store(String fileName, int fileSize){
-
+        out.println(Protocol.ACK_TOKEN);
+        try {
+            FileOutputStream f = new FileOutputStream(fileName);
+            f.write(binput.readNBytes(fileSize));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
 
     public File load(String fileName) {
@@ -53,7 +68,10 @@ public class DstoreThread implements Runnable {
     }
 
     public void list() {
-        out.println("a b c d");
+        StringBuilder list = new StringBuilder();
+        for (File file:fileList) {
+            list.append(" " + file.getName());
+        }
     };
 
     public void rebalance(String filesToSend, String filesToRemove) {};

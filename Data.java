@@ -4,10 +4,15 @@ import java.util.HashSet;
 
 public class Data {
     private int status;
-    private HashSet<Socket> locations;
+    private HashSet<Integer> locations;
 
-    public Data(int status, Socket location) {
+    private int fileSize;
+
+    public Data(int status, int location, int fileSize) {
         this.status = status;
+        this.fileSize = fileSize;
+        locations = new HashSet<>();
+        locations.add(location);
     }
 
     public int getStatus() {
@@ -22,15 +27,23 @@ public class Data {
         this.status = status;
     }
 
-    public HashSet<Socket> getLocations() {
+    public HashSet<Integer> getLocations() {
         return locations;
     }
 
-    public void addLocation(Socket socket) {
-        locations.add(socket);
+    public int getFileSize() {
+        return fileSize;
     }
 
-    public void removeLocation(Socket socket) {
-        locations.remove(socket);
+    public void setFileSize(int fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public void addLocation(Integer port) {
+        locations.add(port);
+    }
+
+    public void removeLocation(Integer port) {
+        locations.remove(port);
     }
 }

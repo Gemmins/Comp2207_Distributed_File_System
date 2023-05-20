@@ -1,9 +1,8 @@
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 
 public class Dstore {
@@ -14,24 +13,29 @@ public class Dstore {
         int timeout = Integer.parseInt(args[2]);
         File file_folder = new File(args[3]);
         ArrayList<File> fileList = new ArrayList<>();
+        CommQ commQ = new CommQ();
 
         //for (File file: file_folder.listFiles()) {
         //    fileList.add(file);
         //}
 
         //Joins Controller and starts thread to communicate
+        Socket cSocket;
+
         try {
+
             InetAddress address = InetAddress.getLocalHost();
-            Socket socket = new Socket(address, port);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            cSocket = new Socket(address, port);
+            new Thread(new CommThread(cSocket, commQ, fileList)).start();
+            PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
             out.println(Protocol.JOIN_TOKEN + " " + cport);
-            new Thread(new DstoreThread(socket)).start();
+            new Thread(new DstoreThread(cSocket, commQ, fileList));
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         //Listens for a client then starts thread to communicate
-        /*
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(cport);
@@ -39,17 +43,15 @@ public class Dstore {
             throw new RuntimeException(e);
         }
 
-        while(true) {
+        while(!cSocket.isClosed()) {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                new DstoreThread(socket);
-
+                new DstoreThread(socket, commQ, fileList);
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }
         }
-        */
 
     }
 

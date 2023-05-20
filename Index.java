@@ -1,13 +1,11 @@
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
+
 
 public class Index {
 
     private HashMap<String, Data> index;
     private boolean flag = true;
-
     public Index() {
         this.index = new HashMap<>();
     }
@@ -30,21 +28,25 @@ public class Index {
         return this.index.get(fileName).getStatus();
     }
 
-    public synchronized HashSet<Socket> getLocations(String fileName) {
+    public synchronized HashSet<Integer> getLocations(String fileName) {
         return this.index.get(fileName).getLocations();
     }
 
-    public synchronized void addLocation(String fileName, Socket socket) {
-        this.index.get(fileName).addLocation(socket);
+    public synchronized void addLocation(String fileName, Integer port) {
+        this.index.get(fileName).addLocation(port);
     }
 
-    public synchronized void removeLocation(String fileName, Socket socket) {
-        this.index.get(fileName).removeLocation(socket);
+    public synchronized void removeLocation(String fileName, Integer port) {
+        this.index.get(fileName).removeLocation(port);
         //if number of locations  now = 0 then maybe remove file idk
     }
 
     public synchronized boolean doesContain(String fileName) {
         return index.containsKey(fileName);
+    }
+
+    public synchronized int getFileSize(String fileName) {
+        return this.index.get(fileName).getFileSize();
     }
 
 }

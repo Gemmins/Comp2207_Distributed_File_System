@@ -23,9 +23,6 @@ public class Controller {
             System.err.println("error :" + e);
         }
 
-        //PrintWriter out = new PrintWriter(serverSocket.getOutputStream);
-
-
         while(true) {
             Socket socket;
             try {
