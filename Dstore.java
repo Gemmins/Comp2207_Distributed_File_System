@@ -29,7 +29,7 @@ public class Dstore {
             new Thread(new CommThread(cSocket, commQ, fileList)).start();
             PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
             out.println(Protocol.JOIN_TOKEN + " " + cport);
-            new Thread(new DstoreThread(cSocket, commQ, fileList));
+            new Thread(new DstoreThread(cSocket, commQ, fileList)).start();
 
         } catch (IOException e) {
             throw new RuntimeException(e);

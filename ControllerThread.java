@@ -47,8 +47,8 @@ public class ControllerThread implements Runnable {
         System.out.println("Sending " + Protocol.LIST_TOKEN);
 
         try {
-            list = in.readLine().split(" ");
-            System.out.println("Receiving " + list);
+            String s = in.readLine();//.split(" ");
+            System.out.println("Receiving " + s);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

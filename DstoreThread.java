@@ -19,9 +19,8 @@ public class DstoreThread implements Runnable {
 
         OutputStream outputStream;
 
-
-
         try {
+            System.out.println("dstore thread starting");
             input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             binput = new BufferedInputStream(socket.getInputStream());
             outputStream = socket.getOutputStream();
@@ -42,6 +41,8 @@ public class DstoreThread implements Runnable {
                     }
                 }
             }
+            System.out.println("connection closed");
+            System.exit(0);
             } catch (Exception e) {
             System.err.println(e);
         }
@@ -68,10 +69,11 @@ public class DstoreThread implements Runnable {
     }
 
     public void list() {
-        StringBuilder list = new StringBuilder();
+        String list = Protocol.LIST_TOKEN;
         for (File file:fileList) {
-            list.append(" " + file.getName());
+            list = list + " " + file.getName();
         }
+        out.println(list);
     };
 
     public void rebalance(String filesToSend, String filesToRemove) {};
