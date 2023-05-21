@@ -61,7 +61,9 @@ public class Index {
     public synchronized String listFiles() {
         StringBuilder files = new StringBuilder();
         for (String s:index.keySet()) {
-            files.append(" ").append(s);
+            if(index.get(s).getStatus().equals("store complete")) {
+                files.append(" ").append(s);
+            }
         }
         if(files.isEmpty()) {
             return "";

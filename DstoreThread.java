@@ -1,15 +1,18 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DstoreThread implements Runnable {
     PrintWriter out;
     Socket socket;
     ArrayList<File> fileList;
-    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList){
+    File folder;
+    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder){
         this.socket = clientSocket;
         this.commQ = commQ;
         this.fileList = fileList;
+        this.folder = folder;
     }
     BufferedReader input;
     CommQ commQ;
@@ -42,7 +45,6 @@ public class DstoreThread implements Runnable {
                 }
             }
             System.out.println("connection closed");
-            System.exit(0);
             } catch (Exception e) {
             System.err.println(e);
         }
@@ -52,11 +54,12 @@ public class DstoreThread implements Runnable {
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
         try {
-            FileOutputStream f = new FileOutputStream(fileName);
+            FileOutputStream f = new FileOutputStream(new File(folder, fileName));
             f.write(binput.readNBytes(fileSize));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        System.out.println(Arrays.toString(folder.listFiles()));
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
 

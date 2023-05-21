@@ -65,6 +65,7 @@ public class ControllerThread implements Runnable {
 
         if (index.doesContain(fileName)) {
             out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+            System.out.println("File " + fileName + " already exists");
             return;
         }
         //TODO chooses to store to the first dstores that are below the maximum number of files
@@ -100,6 +101,7 @@ public class ControllerThread implements Runnable {
             return;
         }
         System.out.println(Protocol.STORE_COMPLETE_TOKEN);
+        index.setStatus(fileName, "store complete");
         out.println(Protocol.STORE_COMPLETE_TOKEN);
     }
 
@@ -148,7 +150,6 @@ public class ControllerThread implements Runnable {
 
     public void storeAck(String fileName) {
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
-        System.out.println(fileName + " added to q");
     }
 
 

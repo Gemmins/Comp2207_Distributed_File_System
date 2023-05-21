@@ -11,6 +11,9 @@ public class Dstore {
         int cport = Integer.parseInt(args[1]);
         int timeout = Integer.parseInt(args[2]);
         File file_folder = new File(args[3]);
+        System.out.println(file_folder.getAbsolutePath());
+        deleteFolder(file_folder);
+        file_folder.mkdir();
         ArrayList<File> fileList = new ArrayList<>();
         CommQ commQ = new CommQ();
 
@@ -28,7 +31,7 @@ public class Dstore {
             new Thread(new CommWriterThread(cSocket, commQ, fileList)).start();
             PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
             out.println(Protocol.JOIN_TOKEN + " " + cport);
-            new Thread(new DstoreThread(cSocket, commQ, fileList)).start();
+            new Thread(new DstoreThread(cSocket, commQ, fileList, file_folder)).start();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -42,16 +45,30 @@ public class Dstore {
             throw new RuntimeException(e);
         }
 
-        while(!cSocket.isClosed()) {
+        while(true) {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                new Thread(new DstoreThread(socket, commQ, fileList)).start();
+                new Thread(new DstoreThread(socket, commQ, fileList, file_folder)).start();
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }
         }
 
+    }
+
+    public static void deleteFolder(File folder) {
+        File[] files = folder.listFiles();
+        if(files!=null) { //some JVMs return null for empty dirs
+            for(File f: files) {
+                if(f.isDirectory()) {
+                    deleteFolder(f);
+                } else {
+                    f.delete();
+                }
+            }
+        }
+        folder.delete();
     }
 
 
