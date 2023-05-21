@@ -1,9 +1,6 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.*;
 
 public class ControllerThread implements Runnable {
 
@@ -13,16 +10,19 @@ public class ControllerThread implements Runnable {
     PrintWriter out;
     BufferedReader in;
     CommQ commQ;
+
+    HashMap<Integer, Socket> dstoress;
     int replication;
     int timeout;
     int port;
-    public ControllerThread(Socket clientSocket, Index index, HashSet<Integer> dstores, CommQ commQ, int timeout, int replication) {
+    public ControllerThread(Socket clientSocket, Index index, HashSet<Integer> dstores, CommQ commQ, int timeout, int replication, HashMap<Integer, Socket> dstoress) {
         this.socket = clientSocket;
         this.index = index;
         this.dstores = dstores;
         this.commQ = commQ;
         this.timeout = timeout;
         this.replication = replication;
+        this.dstoress = dstoress;
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -74,18 +74,15 @@ public class ControllerThread implements Runnable {
 
     }
 
-
-
     public void store(String fileName, int fileSize) {
 
         synchronized (index) {
-            if (index.doesContain(fileName)) {
+            if (index.doesContain(fileName) && !(index.getStatus(fileName).equals("remove complete"))) {
                 out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
                 return;
             }
             index.addFile(fileName, new Data("store in progress", new Integer[] {}, fileSize ));
         }
-
 
         //stores the file in the dstores with the lowest number of files
         //assumes a check has already been done to make sure that there aren't enough dstores
@@ -120,9 +117,10 @@ public class ControllerThread implements Runnable {
         //loops around removing incoming store acks from the queue until timeout or until all required are removed
         //maybe make a whole new way to communicate between threads and check for messages as this is probably a terrible way to do it
         long startTime = System.currentTimeMillis();
+        //TODO make timeout for all not each one
         while(System.currentTimeMillis() < (startTime + timeout) && (j < i)) {
             if (commQ.remove(Protocol.STORE_ACK_TOKEN + " " + fileName)) {
-                System.out.println("removed");
+                System.out.println("stored");
                 j++;
             }
         }
@@ -146,6 +144,7 @@ public class ControllerThread implements Runnable {
                     locations = index.getLocations(fileName);
                 } else {
                     out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                    return;
                 }
             }
         } catch (Exception e) {
@@ -183,13 +182,52 @@ public class ControllerThread implements Runnable {
     }
 
     public void remove(String fileName) {
-
+        HashSet<Integer> locations;
+        synchronized (index) {
+            if (!index.getStatus(fileName).equals("store complete")) {
+                out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                return;
+                }
+            }
+            index.setStatus(fileName, "remove in progress");
+            System.out.println("remove in progress" + fileName);
+            locations = index.getLocations(fileName);
+            int j = 0;
+            for (Integer location:locations) {
+                try {
+                    PrintWriter tout = new PrintWriter(dstoress.get(location).getOutputStream());
+                    tout.println(Protocol.REMOVE_TOKEN + " " + fileName);
+                    System.out.println(Protocol.REMOVE_TOKEN + " " + fileName);
+                    tout.flush();
+                } catch (Exception e) {
+                    System.err.println("error: " + e);
+                }
+                long startTime = System.currentTimeMillis();
+                int k = 0;
+                //TODO make timeout for all not individual
+                    while((k < 1)) {
+                        if (commQ.remove(Protocol.REMOVE_ACK_TOKEN + " " + fileName)) {
+                            System.out.println("removed");
+                            k++;
+                            j++;
+                        }
+                    }
+                }
+            if(j == locations.size()) {
+                synchronized (index) {
+                    index.setStatus(fileName, "remove complete");
+                    out.println(Protocol.REMOVE_COMPLETE_TOKEN + " " + fileName);
+                }
+            }
     }
 
     public void storeAck(String fileName) {
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
 
+    public void removeAck(String fileName) {
+        commQ.add(Protocol.REMOVE_ACK_TOKEN + " " + fileName);
+    }
 
     public void list() {
         String l = Protocol.LIST_TOKEN + " " + index.listFiles();
@@ -207,12 +245,15 @@ public class ControllerThread implements Runnable {
         String[] sentence = line.split(" ");
         switch (sentence[0]) {
             case Protocol.JOIN_TOKEN -> {dstores.add(Integer.valueOf(sentence[1]));
+                dstoress.put(Integer.valueOf(sentence[1]), socket);
                 rebalance(Integer.parseInt(sentence[1]));}
             case Protocol.STORE_TOKEN -> store(sentence[1], Integer.parseInt(sentence[2]));
             case Protocol.LOAD_TOKEN -> load(sentence[1]);
             case Protocol.REMOVE_TOKEN -> remove(sentence[1]);
             case Protocol.LIST_TOKEN -> list();
             case Protocol.STORE_ACK_TOKEN -> storeAck(sentence[1]);
+            case Protocol.REMOVE_ACK_TOKEN -> {removeAck(sentence[1]);
+            System.out.println("remove ack added");}
             default -> {
                 return;
             }

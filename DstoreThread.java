@@ -93,7 +93,13 @@ public class DstoreThread implements Runnable {
     }
 
     public void remove(String fileName) {
-
+        for (File f:Objects.requireNonNull(folder.listFiles())) {
+            if(f.getName().equals(fileName)) {
+                f.delete();
+                commQ.add(Protocol.REMOVE_ACK_TOKEN + " " + fileName);
+                break;
+            }
+        }
     }
 
     public void list() {
