@@ -13,6 +13,7 @@ public class Controller {
         int timeout = Integer.parseInt(args[2]);
         int rp = Integer.parseInt(args[3]);
         Index index = new Index();
+        //TODO need to synchronise access to this set
         HashSet<Integer> dstores = new HashSet<>();
         ServerSocket serverSocket = null;
         Timer timer = new Timer();

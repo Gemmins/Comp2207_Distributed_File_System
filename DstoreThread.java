@@ -8,11 +8,13 @@ public class DstoreThread implements Runnable {
     Socket socket;
     ArrayList<File> fileList;
     File folder;
-    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder){
+    boolean isController;
+    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder, boolean isController){
         this.socket = clientSocket;
         this.commQ = commQ;
         this.fileList = fileList;
         this.folder = folder;
+        this.isController = isController;
     }
     BufferedReader input;
     CommQ commQ;
@@ -44,7 +46,11 @@ public class DstoreThread implements Runnable {
                     }
                 }
             }
-            System.out.println("connection closed");
+            if(isController) {
+                System.out.println("Connection with controller closed - now terminating");
+                System.exit(0);
+            }
+            System.out.println("Connection with client at " + socket.getPort() + " closed");
             } catch (Exception e) {
             System.err.println(e);
         }

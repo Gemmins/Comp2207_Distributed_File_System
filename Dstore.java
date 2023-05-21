@@ -31,7 +31,7 @@ public class Dstore {
             new Thread(new CommWriterThread(cSocket, commQ, fileList)).start();
             PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
             out.println(Protocol.JOIN_TOKEN + " " + cport);
-            new Thread(new DstoreThread(cSocket, commQ, fileList, file_folder)).start();
+            new Thread(new DstoreThread(cSocket, commQ, fileList, file_folder, true)).start();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -49,7 +49,7 @@ public class Dstore {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                new Thread(new DstoreThread(socket, commQ, fileList, file_folder)).start();
+                new Thread(new DstoreThread(socket, commQ, fileList, file_folder, false)).start();
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }

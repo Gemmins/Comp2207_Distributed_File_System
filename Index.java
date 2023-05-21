@@ -40,6 +40,12 @@ public class Index {
         //if number of locations  now = 0 then maybe remove file idk
     }
 
+    public synchronized void removeStore(Integer port) {
+        for (String s: index.keySet()) {
+            removeLocation(s, port);
+        }
+    }
+
     public synchronized boolean doesContain(String fileName) {
         return index.containsKey(fileName);
     }
@@ -49,6 +55,9 @@ public class Index {
     }
 
     public synchronized int getDstoreSize(Integer port) {
+        if(index.size() == 0) {
+            return 0;
+        }
         int i = 0;
         for (String s: index.keySet()) {
             if (index.get(s).getLocations().contains(port)){
