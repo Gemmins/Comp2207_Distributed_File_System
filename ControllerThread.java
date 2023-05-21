@@ -10,7 +10,8 @@ public class ControllerThread implements Runnable {
     PrintWriter out;
     BufferedReader in;
     CommQ commQ;
-
+    final Object indexGuard = new Object();
+    final Object dstoreGuard = new Object();
     HashMap<Integer, Socket> dstoress;
     int replication;
     int timeout;
@@ -76,12 +77,13 @@ public class ControllerThread implements Runnable {
 
     public void store(String fileName, int fileSize) {
 
-        synchronized (index) {
+        synchronized (indexGuard) {
             if (index.doesContain(fileName) && !(index.getStatus(fileName).equals("remove complete"))) {
                 out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
                 return;
             }
             index.addFile(fileName, new Data("store in progress", new Integer[] {}, fileSize ));
+            System.out.println(fileName + " store in progress");
         }
 
         //stores the file in the dstores with the lowest number of files
@@ -92,8 +94,10 @@ public class ControllerThread implements Runnable {
         ArrayList<Integer[]> ascendingList = new ArrayList<>();
         StringBuilder list = new StringBuilder(Protocol.STORE_TO_TOKEN);
         //gets all dstores and pairs them with how many files they have
-        for (int d: dstores) {
-            ascendingList.add(new Integer[]{d, index.getDstoreSize(d)});
+        synchronized (dstoreGuard) {
+            for (int d : dstores) {
+                ascendingList.add(new Integer[]{d, index.getDstoreSize(d)});
+            }
         }
         Comparator<Integer[]> compareSize = (Integer[] o1, Integer[] o2) ->
                 o1[1].compareTo(o2[1]);
@@ -139,7 +143,7 @@ public class ControllerThread implements Runnable {
         HashSet<Integer> locations = null;
         //check if file exists and status is ok
         try {
-            synchronized (index) {
+            synchronized (indexGuard) {
                 if (index.getStatus(fileName).equals("store complete")) {
                     locations = index.getLocations(fileName);
                 } else {
@@ -148,11 +152,9 @@ public class ControllerThread implements Runnable {
                 }
             }
         } catch (Exception e) {
-            //TODO deal with this
             System.err.println("error: " + e);
             return;
         }
-
         //will send first location, if reload is received then loop to next location if not then execute next line then return to loop
         for (Integer s:locations) {
             String line;
@@ -182,16 +184,17 @@ public class ControllerThread implements Runnable {
     }
 
     public void remove(String fileName) {
-        HashSet<Integer> locations;
-        synchronized (index) {
+        HashSet<Integer> locations = null;
+        synchronized (indexGuard) {
             if (!index.getStatus(fileName).equals("store complete")) {
                 out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                 return;
                 }
-            }
             index.setStatus(fileName, "remove in progress");
             System.out.println("remove in progress" + fileName);
             locations = index.getLocations(fileName);
+            }
+
             int j = 0;
             for (Integer location:locations) {
                 try {

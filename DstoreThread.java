@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
@@ -10,6 +11,8 @@ public class DstoreThread implements Runnable {
     Socket socket;
     ArrayList<File> fileList;
     File folder;
+
+    final Object guard = new Object();
     boolean isController;
     public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder, boolean isController){
         this.socket = clientSocket;
@@ -62,50 +65,69 @@ public class DstoreThread implements Runnable {
 
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
-        try {
-            FileOutputStream f = new FileOutputStream(new File(folder, fileName));
-            f.write(binput.readNBytes(fileSize));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        synchronized (guard) {
+            try {
+                FileOutputStream f = new FileOutputStream(new File(folder, fileName));
+                f.write(binput.readNBytes(fileSize));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(Arrays.toString(folder.listFiles()));
         }
-        System.out.println(Arrays.toString(folder.listFiles()));
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
 
     public void load(String fileName) {
         byte[] stream = new byte[0];
-        for (File f: Objects.requireNonNull(folder.listFiles())) {
-            if(f.getName().equals(fileName)) {
-                try {
-                    stream = Files.readAllBytes(f.toPath());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+        File[] files;
+        synchronized (guard) {
+            files = folder.listFiles();
+
+            assert files != null;
+            for (File f : files) {
+                if (f.getName().equals(fileName)) {
+                    try {
+                        stream = Files.readAllBytes(f.toPath());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    break;
                 }
-                break;
             }
         }
         try {
+            if (stream.length < 1) {
+                System.out.println("Dstore doesnt have file " + fileName);
+                socket.close();
+                return;
+            }
+            System.out.println("sending file " + fileName);
             outputStream.write(stream);
             outputStream.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
     }
 
     public void remove(String fileName) {
-        for (File f:Objects.requireNonNull(folder.listFiles())) {
-            if(f.getName().equals(fileName)) {
-                f.delete();
-                commQ.add(Protocol.REMOVE_ACK_TOKEN + " " + fileName);
-                break;
+        synchronized (guard) {
+            for (File f : Objects.requireNonNull(folder.listFiles())) {
+                if (f.getName().equals(fileName)) {
+                    f.delete();
+                    commQ.add(Protocol.REMOVE_ACK_TOKEN + " " + fileName);
+                    break;
+                }
             }
         }
     }
 
     public void list() {
         StringBuilder list = new StringBuilder(Protocol.LIST_TOKEN);
-        for (File file:fileList) {
-            list.append(" ").append(file.getName());
+        synchronized (guard) {
+            for (File file : fileList) {
+                list.append(" ").append(file.getName());
+            }
         }
         out.println(list);
     };
