@@ -141,8 +141,12 @@ public class ControllerThread implements Runnable {
         HashSet<Integer> locations = null;
         //check if file exists and status is ok
         try {
-            if (index.getStatus(fileName).equals("hi")) {
-                locations = index.getLocations(fileName);
+            synchronized (index) {
+                if (index.getStatus(fileName).equals("store complete")) {
+                    locations = index.getLocations(fileName);
+                } else {
+                    out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                }
             }
         } catch (Exception e) {
             //TODO deal with this
@@ -155,15 +159,18 @@ public class ControllerThread implements Runnable {
             String line;
             out.println(Protocol.LOAD_FROM_TOKEN + " " + s + " " + index.getFileSize(fileName));
             try {
-                line = in.readLine();
-                if (line.equals(Protocol.RELOAD_TOKEN)) {
-                    System.out.println(line + " received");
-                    continue;
-                } else if (line == null) {
-                    return;
-                } else {
+                while((line = in.readLine()) != null) {
+                    if(line == Protocol.RELOAD_TOKEN) {
+                        break;
+                    }
+                    else if(line == null) {
+                        socket.close();
+                        dstores.remove(port);
+                        index.removeStore(port);
+                        return;
+                    }
                     execute(line);
-                    return;
+                    break;
                 }
             } catch (Exception e) {
                 System.err.println("error: " + e);
@@ -173,7 +180,6 @@ public class ControllerThread implements Runnable {
         }
         //if no dstores work
         out.println(Protocol.ERROR_LOAD_TOKEN);
-
     }
 
     public void remove(String fileName) {

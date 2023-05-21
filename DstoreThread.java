@@ -1,7 +1,9 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class DstoreThread implements Runnable {
     PrintWriter out;
@@ -20,9 +22,10 @@ public class DstoreThread implements Runnable {
     CommQ commQ;
     BufferedInputStream binput;
 
+    OutputStream outputStream;
     public void run() {
 
-        OutputStream outputStream;
+
 
         try {
             System.out.println("dstore thread starting");
@@ -69,8 +72,24 @@ public class DstoreThread implements Runnable {
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
 
-    public File load(String fileName) {
-        return null;
+    public void load(String fileName) {
+        byte[] stream = new byte[0];
+        for (File f: Objects.requireNonNull(folder.listFiles())) {
+            if(f.getName().equals(fileName)) {
+                try {
+                    stream = Files.readAllBytes(f.toPath());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                break;
+            }
+        }
+        try {
+            outputStream.write(stream);
+            outputStream.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void remove(String fileName) {
