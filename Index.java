@@ -35,6 +35,12 @@ public class Index {
         this.index.get(fileName).addLocation(port);
     }
 
+    public synchronized void addLocations(String fileName, Integer[] ports) {
+        for (Integer i:ports) {
+            this.index.get(fileName).addLocation(i);
+        }
+    }
+
     public synchronized void removeLocation(String fileName, Integer port) {
         this.index.get(fileName).removeLocation(port);
         //if number of locations  now = 0 then maybe remove file idk

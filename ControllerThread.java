@@ -74,17 +74,16 @@ public class ControllerThread implements Runnable {
 
     }
 
+
+
     public void store(String fileName, int fileSize) {
 
-        if (index.doesContain(fileName)) {
-            out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
-            System.out.println("File " + fileName + " already exists");
-            return;
-        }
-
-        if(dstores.size() < replication) {
-            out.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-            return;
+        synchronized (index) {
+            if (index.doesContain(fileName)) {
+                out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+                return;
+            }
+            index.addFile(fileName, new Data("store in progress", new Integer[] {}, fileSize ));
         }
 
 
@@ -111,11 +110,10 @@ public class ControllerThread implements Runnable {
 
         Integer[] arr = storeList.toArray(new Integer[storeList.size()]);
         //update index with dstores being stored to
-        index.addFile(fileName, new Data("store in progress", arr, fileSize));
+        index.addLocations(fileName, arr);
         //sends message to client
         System.out.println(list);
         out.println(list);
-
         int i = storeList.size();
         int j = 0;
 
@@ -194,10 +192,13 @@ public class ControllerThread implements Runnable {
     }
 
     public void execute(String line) {
+        //not sure if just less that r or if the dstores would be too full?
+        //if(dstores.size() < replication) {
+        //    out.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+        //    return;
+        //}
         System.out.println(line + " received");
         String[] sentence = line.split(" ");
-        //not sure if just less that r or if the dstores would be too full?
-
         switch (sentence[0]) {
             case Protocol.JOIN_TOKEN -> {dstores.add(Integer.valueOf(sentence[1]));
                 rebalance(Integer.parseInt(sentence[1]));}
