@@ -69,9 +69,9 @@ public class DstoreThread implements Runnable {
     }
 
     public void list() {
-        String list = Protocol.LIST_TOKEN;
+        StringBuilder list = new StringBuilder(Protocol.LIST_TOKEN);
         for (File file:fileList) {
-            list = list + " " + file.getName();
+            list.append(" ").append(file.getName());
         }
         out.println(list);
     };

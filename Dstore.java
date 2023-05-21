@@ -2,7 +2,6 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 
 public class Dstore {
@@ -26,7 +25,7 @@ public class Dstore {
 
             InetAddress address = InetAddress.getLocalHost();
             cSocket = new Socket(address, port);
-            new Thread(new CommThread(cSocket, commQ, fileList)).start();
+            new Thread(new CommWriterThread(cSocket, commQ, fileList)).start();
             PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
             out.println(Protocol.JOIN_TOKEN + " " + cport);
             new Thread(new DstoreThread(cSocket, commQ, fileList)).start();
@@ -47,7 +46,7 @@ public class Dstore {
             Socket socket = null;
             try {
                 socket = serverSocket.accept();
-                new DstoreThread(socket, commQ, fileList);
+                new Thread(new DstoreThread(socket, commQ, fileList)).start();
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }

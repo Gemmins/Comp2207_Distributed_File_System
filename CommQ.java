@@ -18,5 +18,16 @@ public class CommQ {
     public synchronized boolean isEmpty() {
         return commQ.isEmpty();
     }
+    public synchronized boolean contains(String s) {
+        return commQ.contains(s);
+    }
+
+    public synchronized boolean remove(String s) {
+        return commQ.remove(s);
+    }
+
+    public synchronized String get() {
+        return commQ.getFirst();
+    }
 
 }

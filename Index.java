@@ -1,4 +1,3 @@
-import java.net.Socket;
 import java.util.*;
 
 
@@ -21,10 +20,10 @@ public class Index {
         this.index.remove(fileName);
     }
 
-    public synchronized void setStatus(String fileName, int status) {
+    public synchronized void setStatus(String fileName, String status) {
         this.index.get(fileName).setStatus(status);
     }
-    public synchronized int getStatus(String fileName) {
+    public synchronized String getStatus(String fileName) {
         return this.index.get(fileName).getStatus();
     }
 
@@ -47,6 +46,32 @@ public class Index {
 
     public synchronized int getFileSize(String fileName) {
         return this.index.get(fileName).getFileSize();
+    }
+
+    public synchronized int getDstoreSize(Integer port) {
+        int i = 0;
+        for (String s: index.keySet()) {
+            if (index.get(s).getLocations().contains(port)){
+                i++;
+            }
+        }
+        return i;
+    }
+
+    public synchronized String listFiles() {
+        StringBuilder files = new StringBuilder();
+        for (String s:index.keySet()) {
+            files.append(" ").append(s);
+        }
+        if(files.isEmpty()) {
+            return "";
+        }
+        //remove the leading space and return
+        return files.toString().substring(1);
+    }
+
+    public synchronized int getNumFiles() {
+        return index.size();
     }
 
 }

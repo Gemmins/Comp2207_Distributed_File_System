@@ -16,6 +16,7 @@ public class Controller {
         HashSet<Integer> dstores = new HashSet<>();
         ServerSocket serverSocket = null;
         Timer timer = new Timer();
+        CommQ commQ = new CommQ();
 
         try {
             serverSocket = new ServerSocket(cport);
@@ -23,11 +24,12 @@ public class Controller {
             System.err.println("error :" + e);
         }
 
+
         while(true) {
             Socket socket;
             try {
                 socket = serverSocket.accept();
-                new Thread(new ControllerThread(socket, index, dstores)).start();
+                new Thread(new ControllerThread(socket, index, dstores, commQ, timeout, r)).start();
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }

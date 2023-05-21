@@ -1,21 +1,22 @@
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 public class Data {
-    private int status;
+    private String status;
     private HashSet<Integer> locations;
 
     private int fileSize;
 
-    public Data(int status, int location, int fileSize) {
+    public Data(String status, Integer[] location, int fileSize) {
         this.status = status;
         this.fileSize = fileSize;
         locations = new HashSet<>();
-        locations.add(location);
+        locations.addAll(Arrays.asList(location));
     }
 
-    public int getStatus() {
+    public String getStatus() {
         return status;
     }
 
@@ -23,7 +24,7 @@ public class Data {
     //    return filename;
     //}
 
-    public void setStatus(int status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
