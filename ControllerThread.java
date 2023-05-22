@@ -173,16 +173,14 @@ public class ControllerThread implements Runnable {
             String line;
             out.println(Protocol.LOAD_FROM_TOKEN + " " + s + " " + index.getFileSize(fileName));
             try {
-                while((line = in.readLine()) != null) {
-                    if(line == Protocol.RELOAD_TOKEN) {
-                        break;
-                    }
-                    else if(line == null) {
-                        socket.close();
-                        dstores.remove(port);
-                        index.removeStore(port);
-                        return;
-                    }
+                if((line = in.readLine()).equals(Protocol.RELOAD_TOKEN)) {
+                    System.out.println("needs to reload");
+                    continue;
+                } else if(line.equals(null)) {
+                    socket.close();
+                    dstores.remove(port);
+                    index.removeStore(port);
+                } else {
                     execute(line);
                     return;
                 }
