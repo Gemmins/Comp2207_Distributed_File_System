@@ -60,7 +60,6 @@ public class ControllerThread implements Runnable {
             return;
         }
 
-
         String[] list;
 
         out.println(Protocol.LIST_TOKEN);
@@ -124,7 +123,6 @@ public class ControllerThread implements Runnable {
         //loops around removing incoming store acks from the queue until timeout or until all required are removed
         //maybe make a whole new way to communicate between threads and check for messages as this is probably a terrible way to do it
         long startTime = System.currentTimeMillis();
-        //TODO make timeout for all not each one
         while(System.currentTimeMillis() < (startTime + timeout) && (j < i)) {
             if (commQ.remove(Protocol.STORE_ACK_TOKEN + " " + fileName)) {
                 System.out.println("stored");
@@ -147,12 +145,16 @@ public class ControllerThread implements Runnable {
         //check if file exists and status is ok
         try {
             synchronized (indexGuard) {
-                if (index.getStatus(fileName).equals("store complete")) {
-                    locations = index.getLocations(fileName);
-                    System.out.println(locations.toString());
+                if (index.doesContain(fileName)) {
+                    if (index.getStatus(fileName).equals("store complete")) {
+                        locations = index.getLocations(fileName);
+                        System.out.println(locations.toString());
+                    } else {
+                        out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                        return;
+                    }
                 } else {
                     out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                    return;
                 }
             }
         } catch (Exception e) {
@@ -192,13 +194,16 @@ public class ControllerThread implements Runnable {
     public void remove(String fileName) {
         HashSet<Integer> locations;
         synchronized (indexGuard) {
-            if (!index.getStatus(fileName).equals("store complete")) {
-                out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                return;
+            if (index.doesContain(fileName)) {
+                if (!index.getStatus(fileName).equals("store complete")) {
+                    out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                    return;
                 }
-            index.setStatus(fileName, "remove in progress");
+                index.setStatus(fileName, "remove in progress");
+            } else {
+                out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
             }
-
+        }
         System.out.println("remove in progress" + fileName);
         locations = index.getLocations(fileName);
         int j = 0;
@@ -212,12 +217,9 @@ public class ControllerThread implements Runnable {
                 System.err.println("error: " + e);
             }
             long startTime = System.currentTimeMillis();
-            int k = 0;
-            //TODO make timeout for all not individual
-            while((k < 1)) {
+            while(j < locations.size() && System.currentTimeMillis() < startTime + timeout) {
                 if (commQ.remove(Protocol.REMOVE_ACK_TOKEN + " " + fileName)) {
                     System.out.println("removed");
-                    k++;
                     j++;
                 }
             }

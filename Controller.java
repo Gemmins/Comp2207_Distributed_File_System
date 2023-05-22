@@ -10,15 +10,14 @@ public class Controller {
     public static void main(String[] args) {
 
         int cport = Integer.parseInt(args[0]);
-        int r = Integer.parseInt(args[1]);
+        int replication = Integer.parseInt(args[1]);
         int timeout = Integer.parseInt(args[2]);
-        int rp = Integer.parseInt(args[3]);
+        int rebalance = Integer.parseInt(args[3]);
         Index index = new Index();
         //TODO need to synchronise access to this set
         HashSet<Integer> dstores = new HashSet<>();
         HashMap<Integer, Socket> dstoress= new HashMap<>();
         ServerSocket serverSocket = null;
-        Timer timer = new Timer();
         CommQ commQ = new CommQ();
 
         try {
@@ -32,7 +31,7 @@ public class Controller {
             Socket socket;
             try {
                 socket = serverSocket.accept();
-                new Thread(new ControllerThread(socket, index, dstores, commQ, timeout, r, dstoress)).start();
+                new Thread(new ControllerThread(socket, index, dstores, commQ, timeout, replication, dstoress)).start();
             } catch (IOException e) {
                 System.err.println("error: " + e);
             }

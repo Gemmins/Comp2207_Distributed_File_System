@@ -10,13 +10,16 @@ public class DstoreThread implements Runnable {
     Socket socket;
     ArrayList<File> fileList;
     File folder;
+    static final Object folderGuard = new Object();
     boolean isController;
-    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder, boolean isController){
+    int timeout;
+    public DstoreThread(Socket clientSocket, CommQ commQ, ArrayList<File> fileList, File folder, boolean isController, int timeout){
         this.socket = clientSocket;
         this.commQ = commQ;
         this.fileList = fileList;
         this.folder = folder;
         this.isController = isController;
+        this.timeout = timeout;
     }
     BufferedReader input;
     CommQ commQ;
@@ -59,15 +62,16 @@ public class DstoreThread implements Runnable {
         }
 
     }
-
+    //need some way to time out this
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
-        try {
-            FileOutputStream f = new FileOutputStream(new File(folder, fileName));
-            f.write(binput.readNBytes(fileSize));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        long startTime = System.currentTimeMillis();
+            try {
+                FileOutputStream f = new FileOutputStream(new File(folder, fileName));
+                f.write(binput.readNBytes(fileSize));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         System.out.println(Arrays.toString(folder.listFiles()));
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
