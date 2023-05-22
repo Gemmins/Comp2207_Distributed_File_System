@@ -159,10 +159,11 @@ public class ControllerThread implements Runnable {
                     }
                 } else {
                     out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                    return;
                 }
             }
         } catch (Exception e) {
-            //TODO deal with this
+            //deal with this
             System.err.println("error: " + e);
             return;
         }
@@ -206,6 +207,8 @@ public class ControllerThread implements Runnable {
                 index.setStatus(fileName, "remove in progress");
             } else {
                 out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                System.out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN + " " + fileName);
+                return;
             }
         }
         System.out.println("remove in progress" + fileName);

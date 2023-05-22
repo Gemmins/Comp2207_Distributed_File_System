@@ -61,31 +61,18 @@ public class DstoreThread implements Runnable {
 
     }
     //need some way to time out this
+    //cant figure it out without timing the whole write operation which causes issues
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
-        class ReadThread implements Runnable {
-            public ReadThread() {
-            }
-            @Override
-            public void run() {
-                try {
-                    FileOutputStream f = new FileOutputStream(new File(folder, fileName));
-                    f.write(binput.readNBytes(fileSize));
-                    System.out.println(Arrays.toString(folder.listFiles()));
-                    commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+
+        try {
+            FileOutputStream f = new FileOutputStream(new File(folder, fileName));
+            f.write(binput.readNBytes(fileSize));
+        } catch (Exception e) {
+            System.err.println("error: " + e);
         }
-
-        Thread read = new Thread(new ReadThread());
-        Timer timer = new Timer();
-        TimeoutTask timeoutTask = new TimeoutTask(read, timer);
-        read.start();
-        timer.schedule(timeoutTask, timeout);
-
-
+        System.out.println(Arrays.toString(folder.listFiles()));
+        commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
 
     }
 
