@@ -1,9 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 
 public class DstoreThread implements Runnable {
     PrintWriter out;
@@ -65,13 +63,25 @@ public class DstoreThread implements Runnable {
     //need some way to time out this
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
-        long startTime = System.currentTimeMillis();
-            try {
-                FileOutputStream f = new FileOutputStream(new File(folder, fileName));
-                f.write(binput.readNBytes(fileSize));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+
+        class ReadThread implements Runnable {
+            @Override
+            public void run() {
+                try {
+                    FileOutputStream f = new FileOutputStream(new File(folder, fileName));
+                    f.write(binput.readNBytes(fileSize));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+        }
+
+        Thread read = new Thread(new ReadThread());
+        Timer timer = new Timer();
+        TimeoutTask timeoutTask = new TimeoutTask(read, timer);
+        read.start();
+        timer.schedule(timeoutTask, timeout);
+
         System.out.println(Arrays.toString(folder.listFiles()));
         commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
     }
@@ -120,6 +130,24 @@ public class DstoreThread implements Runnable {
 
     }
 
+    class TimeoutTask extends TimerTask {
+        private Thread thread;
+        private Timer timer;
 
+
+
+        public TimeoutTask(Thread thread, Timer timer) {
+            this.thread = thread;
+            this.timer = timer;
+        }
+
+        @Override
+        public void run() {
+            if(thread != null && thread.isAlive()) {
+                thread.interrupt();
+                timer.cancel();
+            }
+        }
+    }
 
 }
