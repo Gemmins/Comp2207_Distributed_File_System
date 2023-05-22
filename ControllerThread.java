@@ -123,6 +123,10 @@ public class ControllerThread implements Runnable {
         //loops around removing incoming store acks from the queue until timeout or until all required are removed
         //maybe make a whole new way to communicate between threads and check for messages as this is probably a terrible way to do it
         long startTime = System.currentTimeMillis();
+
+
+        //insert timer here
+
         while(System.currentTimeMillis() < (startTime + timeout) && (j < i)) {
             if (commQ.remove(Protocol.STORE_ACK_TOKEN + " " + fileName)) {
                 System.out.println("stored");
@@ -206,6 +210,10 @@ public class ControllerThread implements Runnable {
         }
         System.out.println("remove in progress" + fileName);
         locations = index.getLocations(fileName);
+
+        //insert timer here
+
+
         int j = 0;
         for (Integer location:locations) {
             try {
@@ -217,9 +225,11 @@ public class ControllerThread implements Runnable {
                 System.err.println("error: " + e);
             }
             long startTime = System.currentTimeMillis();
-            while(j < locations.size() && System.currentTimeMillis() < startTime + timeout) {
+            boolean isRecieved = false;
+            while(!isRecieved) {
                 if (commQ.remove(Protocol.REMOVE_ACK_TOKEN + " " + fileName)) {
                     System.out.println("removed");
+                    isRecieved = true;
                     j++;
                 }
             }

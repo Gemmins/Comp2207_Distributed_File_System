@@ -63,13 +63,16 @@ public class DstoreThread implements Runnable {
     //need some way to time out this
     public void store(String fileName, int fileSize){
         out.println(Protocol.ACK_TOKEN);
-
         class ReadThread implements Runnable {
+            public ReadThread() {
+            }
             @Override
             public void run() {
                 try {
                     FileOutputStream f = new FileOutputStream(new File(folder, fileName));
                     f.write(binput.readNBytes(fileSize));
+                    System.out.println(Arrays.toString(folder.listFiles()));
+                    commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -82,8 +85,8 @@ public class DstoreThread implements Runnable {
         read.start();
         timer.schedule(timeoutTask, timeout);
 
-        System.out.println(Arrays.toString(folder.listFiles()));
-        commQ.add(Protocol.STORE_ACK_TOKEN + " " + fileName);
+
+
     }
 
     public void load(String fileName) {
@@ -130,10 +133,10 @@ public class DstoreThread implements Runnable {
 
     }
 
+
     class TimeoutTask extends TimerTask {
         private Thread thread;
         private Timer timer;
-
 
 
         public TimeoutTask(Thread thread, Timer timer) {
@@ -144,10 +147,18 @@ public class DstoreThread implements Runnable {
         @Override
         public void run() {
             if(thread != null && thread.isAlive()) {
+                try {
+                    binput.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("read timeout");
                 thread.interrupt();
                 timer.cancel();
             }
         }
     }
+
+
 
 }
