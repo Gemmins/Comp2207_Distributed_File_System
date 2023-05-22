@@ -6,11 +6,12 @@ public class ControllerThread implements Runnable {
 
     Socket socket;
     Index index;
+    static final Object indexGuard = new Object();
+    static final Object dstoresGuard = new Object();
     HashSet<Integer> dstores;
     PrintWriter out;
     BufferedReader in;
     CommQ commQ;
-
     HashMap<Integer, Socket> dstoress;
     int replication;
     int timeout;
@@ -76,12 +77,18 @@ public class ControllerThread implements Runnable {
 
     public void store(String fileName, int fileSize) {
 
-        synchronized (index) {
+        System.out.println("store beginning");
+
+        synchronized (indexGuard) {
+            System.out.println(index.doesContain(fileName));
             if (index.doesContain(fileName) && !(index.getStatus(fileName).equals("remove complete"))) {
                 out.println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+                System.out.println("file already exists");
                 return;
             }
             index.addFile(fileName, new Data("store in progress", new Integer[] {}, fileSize ));
+            System.out.println(index.doesContain(fileName));
+            System.out.println("index updated");
         }
 
         //stores the file in the dstores with the lowest number of files
@@ -139,9 +146,10 @@ public class ControllerThread implements Runnable {
         HashSet<Integer> locations = null;
         //check if file exists and status is ok
         try {
-            synchronized (index) {
+            synchronized (indexGuard) {
                 if (index.getStatus(fileName).equals("store complete")) {
                     locations = index.getLocations(fileName);
+                    System.out.println(locations.toString());
                 } else {
                     out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                     return;
@@ -169,7 +177,7 @@ public class ControllerThread implements Runnable {
                         return;
                     }
                     execute(line);
-                    break;
+                    return;
                 }
             } catch (Exception e) {
                 System.err.println("error: " + e);
@@ -183,42 +191,41 @@ public class ControllerThread implements Runnable {
 
     public void remove(String fileName) {
         HashSet<Integer> locations;
-        synchronized (index) {
+        synchronized (indexGuard) {
             if (!index.getStatus(fileName).equals("store complete")) {
                 out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                 return;
                 }
-            }
             index.setStatus(fileName, "remove in progress");
-            System.out.println("remove in progress" + fileName);
-            locations = index.getLocations(fileName);
-            int j = 0;
-            for (Integer location:locations) {
-                try {
-                    PrintWriter tout = new PrintWriter(dstoress.get(location).getOutputStream());
-                    tout.println(Protocol.REMOVE_TOKEN + " " + fileName);
-                    System.out.println(Protocol.REMOVE_TOKEN + " " + fileName);
-                    tout.flush();
-                } catch (Exception e) {
-                    System.err.println("error: " + e);
-                }
-                long startTime = System.currentTimeMillis();
-                int k = 0;
-                //TODO make timeout for all not individual
-                    while((k < 1)) {
-                        if (commQ.remove(Protocol.REMOVE_ACK_TOKEN + " " + fileName)) {
-                            System.out.println("removed");
-                            k++;
-                            j++;
-                        }
-                    }
-                }
-            if(j == locations.size()) {
-                synchronized (index) {
-                    index.setStatus(fileName, "remove complete");
-                    out.println(Protocol.REMOVE_COMPLETE_TOKEN + " " + fileName);
+            }
+
+        System.out.println("remove in progress" + fileName);
+        locations = index.getLocations(fileName);
+        int j = 0;
+        for (Integer location:locations) {
+            try {
+                PrintWriter tout = new PrintWriter(dstoress.get(location).getOutputStream());
+                tout.println(Protocol.REMOVE_TOKEN + " " + fileName);
+                System.out.println(Protocol.REMOVE_TOKEN + " " + fileName);
+                tout.flush();
+            } catch (Exception e) {
+                System.err.println("error: " + e);
+            }
+            long startTime = System.currentTimeMillis();
+            int k = 0;
+            //TODO make timeout for all not individual
+            while((k < 1)) {
+                if (commQ.remove(Protocol.REMOVE_ACK_TOKEN + " " + fileName)) {
+                    System.out.println("removed");
+                    k++;
+                    j++;
                 }
             }
+        }
+        if(j == locations.size()) {
+                index.setStatus(fileName, "remove complete");
+                out.println(Protocol.REMOVE_COMPLETE_TOKEN + " " + fileName);
+        }
     }
 
     public void storeAck(String fileName) {
@@ -236,17 +243,24 @@ public class ControllerThread implements Runnable {
     }
 
     public void execute(String line) {
+
         //not sure if just less that r or if the dstores would be too full?
-        //if(dstores.size() < replication) {
-        //    out.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-        //    return;
-        //}
+
         System.out.println(line + " received");
         String[] sentence = line.split(" ");
-        switch (sentence[0]) {
-            case Protocol.JOIN_TOKEN -> {dstores.add(Integer.valueOf(sentence[1]));
+
+        synchronized (dstoresGuard) {
+            if (sentence[0].equals(Protocol.JOIN_TOKEN)) {
+                dstores.add(Integer.valueOf(sentence[1]));
+                System.out.println(Integer.valueOf(sentence[1]) + " added dstore");
                 dstoress.put(Integer.valueOf(sentence[1]), socket);
-                rebalance(Integer.parseInt(sentence[1]));}
+                rebalance(Integer.parseInt(sentence[1]));
+            } else if (dstores.size() < replication) {
+                out.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+                return;
+            }
+        }
+        switch (sentence[0]) {
             case Protocol.STORE_TOKEN -> store(sentence[1], Integer.parseInt(sentence[2]));
             case Protocol.LOAD_TOKEN -> load(sentence[1]);
             case Protocol.REMOVE_TOKEN -> remove(sentence[1]);

@@ -20,10 +20,6 @@ public class Data {
         return status;
     }
 
-    //public String getFilename() {
-    //    return filename;
-    //}
-
     public void setStatus(String status) {
         this.status = status;
     }

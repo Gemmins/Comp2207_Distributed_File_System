@@ -3,7 +3,7 @@ import java.util.*;
 
 public class Index {
 
-    private HashMap<String, Data> index;
+    private volatile HashMap<String, Data> index;
     private boolean flag = true;
     public Index() {
         this.index = new HashMap<>();
@@ -16,6 +16,7 @@ public class Index {
         //fix this
         this.index.put(fileName, data);
     }
+
     public synchronized void removeFile(String fileName) {
         this.index.remove(fileName);
     }
@@ -23,6 +24,7 @@ public class Index {
     public synchronized void setStatus(String fileName, String status) {
         this.index.get(fileName).setStatus(status);
     }
+
     public synchronized String getStatus(String fileName) {
         return this.index.get(fileName).getStatus();
     }
