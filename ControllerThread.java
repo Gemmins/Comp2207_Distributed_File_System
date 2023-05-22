@@ -147,9 +147,14 @@ public class ControllerThread implements Runnable {
         //check if file exists and status is ok
         try {
             synchronized (indexGuard) {
-                if (index.getStatus(fileName).equals("store complete")) {
-                    locations = index.getLocations(fileName);
-                    System.out.println(locations.toString());
+                if (index.doesContain(fileName)) {
+                    if (index.getStatus(fileName).equals("store complete")) {
+                        locations = index.getLocations(fileName);
+                        System.out.println(locations.toString());
+                    } else {
+                        out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                        return;
+                    }
                 } else {
                     out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                     return;
@@ -192,12 +197,16 @@ public class ControllerThread implements Runnable {
     public void remove(String fileName) {
         HashSet<Integer> locations;
         synchronized (indexGuard) {
-            if (!index.getStatus(fileName).equals("store complete")) {
-                out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                return;
+            if (index.doesContain(fileName)) {
+                if (!index.getStatus(fileName).equals("store complete")) {
+                    out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                    return;
                 }
-            index.setStatus(fileName, "remove in progress");
+                index.setStatus(fileName, "remove in progress");
+            } else {
+                out.println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
             }
+        }
 
         System.out.println("remove in progress" + fileName);
         locations = index.getLocations(fileName);

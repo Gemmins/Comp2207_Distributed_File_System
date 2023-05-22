@@ -27,10 +27,10 @@ public class Dstore {
         try {
 
             InetAddress address = InetAddress.getLocalHost();
-            cSocket = new Socket(address, port);
+            cSocket = new Socket(address, cport);
             new Thread(new CommWriterThread(cSocket, commQ, fileList)).start();
             PrintWriter out = new PrintWriter(cSocket.getOutputStream(), true);
-            out.println(Protocol.JOIN_TOKEN + " " + cport);
+            out.println(Protocol.JOIN_TOKEN + " " + port);
             new Thread(new DstoreThread(cSocket, commQ, fileList, file_folder, true)).start();
 
         } catch (IOException e) {
@@ -40,7 +40,7 @@ public class Dstore {
         //Listens for a client then starts thread to communicate
         ServerSocket serverSocket = null;
         try {
-            serverSocket = new ServerSocket(cport);
+            serverSocket = new ServerSocket(port);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
